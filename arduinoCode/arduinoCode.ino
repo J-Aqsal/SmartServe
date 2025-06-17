@@ -27,6 +27,15 @@ const int echoFront = A6;
 const int trigBack = A7;
 const int echoBack = A8;
 
+int sweepMin = 60;
+int sweepMax = 120;
+int currentAngleFront = sweepMin;
+int currentAngleBack = sweepMin;
+bool sweepingForwardFront = true;
+bool sweepingForwardBack = true;
+const int sweepDelay = 30;
+unsigned long lastSweepTime = 0;
+
 // ========== ROBOT CONFIGURATION ==========
 const int baseSpeed = 150;        // Base motor speed (0-255)
 const int maxSpeed = 200;         // Maximum motor speed
@@ -54,7 +63,12 @@ const int sensorWeights[8] = {-7, -5, -3, -1, 1, 3, 5, 7};
 
 Servo servo1;
 Servo servo2;
+Servo servoFront;
+Servo servoBack;
 
+// Servo pin
+const int servoFrontPin = A9;
+const int servoBackPin = A12;
 const int servo1Pin = 28;
 const int servo2Pin = 29;
 
@@ -89,10 +103,15 @@ void setup() {
   // Initialize servo pins
   servo1.attach(servo1Pin);
   servo2.attach(servo2Pin);
+  servoFront.attach(servoFrontPin);
+  servoBack.attach(servoBackPin);
+
 
   servo1.write(servo1Default);
   servo2.write(servo2Default);
-
+  servoFront.write(currentAngleFront);
+  servoBack.write(currentAngleBack);
+  
   // Stop motors initially
   stopMotors();
 }
@@ -105,16 +124,16 @@ void loop() {
   
   // If we have a target table, start line following
   if (targetTable > 0) {
-
     if (isObstacleDetected()) {
-      Serial.println("motor stop");
-      stopMotors();
+      stopMotors(); // motor berhenti
       return;
     }
 
+    sweepServo();       // servo gerak hanya jika tidak ada halangan
     followLine();
     countTables();
   }
+
   
   delay(10); // Small delay for stability
 }
@@ -179,8 +198,10 @@ void followLine() {
     
     // Move motors
     if (isDelivering) {
+      // Serial.println("majuu");
       moveForward(leftSpeed, rightSpeed);
     } else {
+      // Serial.println("mundurr");
       moveBackward(leftSpeed, rightSpeed);
     }
     
@@ -277,10 +298,11 @@ void stopMotors() {
   digitalWrite(motorA_Pin1, LOW);
   digitalWrite(motorA_Pin2, LOW);
   analogWrite(motorA_Enable, 0);
-  
+
   digitalWrite(motorB_Pin1, LOW);
   digitalWrite(motorB_Pin2, LOW);
   analogWrite(motorB_Enable, 0);
+
 }
 
 // ========== UTILITY FUNCTIONS ==========
@@ -322,6 +344,32 @@ void servingFood(){
   }
 }
 
+void sweepServo() {
+  if (millis() - lastSweepTime >= sweepDelay) {
+    lastSweepTime = millis();
+
+    if (isDelivering) {
+      if (sweepingForwardFront) {
+        currentAngleFront += 2;
+        if (currentAngleFront >= sweepMax) sweepingForwardFront = false;
+      } else {
+        currentAngleFront -= 2;
+        if (currentAngleFront <= sweepMin) sweepingForwardFront = true;
+      }
+      servoFront.write(currentAngleFront);
+    } else {
+      if (sweepingForwardBack) {
+        currentAngleBack += 2;
+        if (currentAngleBack >= sweepMax) sweepingForwardBack = false;
+      } else {
+        currentAngleBack -= 2;
+        if (currentAngleBack <= sweepMin) sweepingForwardBack = true;
+      }
+      servoBack.write(currentAngleBack);
+    }
+  }
+}
+
 
 long readUltrasonic(int trigPin, int echoPin) {
   digitalWrite(trigPin, LOW);
@@ -336,9 +384,12 @@ long readUltrasonic(int trigPin, int echoPin) {
 }
 
 bool isObstacleDetected() {
-  long distance = isDelivering
-                  ? readUltrasonic(trigFront, echoFront)
-                  : readUltrasonic(trigBack, echoBack);
+  long distance;
+  if (isDelivering) {
+    distance = readUltrasonic(trigFront, echoFront);
+  } else {
+    distance = readUltrasonic(trigBack, echoBack);
+  }
 
   if (distance > 0 && distance < 10) {
     Serial.print("Obstacle detected at ");
@@ -348,6 +399,7 @@ bool isObstacleDetected() {
   }
   return false;
 }
+
 // ========== CONFIGURATION FUNCTIONS ==========
 void setPIDValues(float p, float i, float d) {
   // Function to update PID values during runtime
