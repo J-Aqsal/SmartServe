@@ -28,6 +28,9 @@ void setup() {
 
 }
 
+unsigned long lastFirebaseCheck = 0;
+const long firebaseCheckInterval = 500; // Cek Firebase setiap 500 ms
+
 void loop() {
   // Ambil perintah dari Mega
   if (Serial.available()) {
@@ -44,14 +47,22 @@ void loop() {
     }
   }
 
-  // Logika respon balik
-  int targetTable = fb.getInt("SmartServe/targetTable");
-  int currentTable = fb.getInt("SmartServe/currentTable");
-  String currentmode = fb.getString("SmartServe/mode");
+  // Logika respon balik (non-blocking)
+  if (millis() - lastFirebaseCheck >= firebaseCheckInterval) {
+    lastFirebaseCheck = millis();
+    int targetTable = fb.getInt("SmartServe/targetTable");
+    String currentmode = fb.getString("SmartServe/mode"); // Hanya ambil mode
 
-  if (currentmode == "process") {
-    Serial.println("mode:on"); // kirim ke Mega untuk nyalakan LED
+    // Kirim feedback ke Arduino hanya jika mode "process"
+    if (currentmode == "process") {
+      Serial.print("targetTable:"); // Kirim juga targetTable jika diperlukan
+      Serial.println(targetTable);
+      Serial.print("mode:");
+      Serial.println(currentmode);
+    } else {
+      // Penting: Kirim feedback juga jika mode bukan "process" untuk mematikan LED
+      Serial.print("mode:");
+      Serial.println(currentmode);
+    }
   }
-
-  delay(2000); // waktu antar polling
 }
