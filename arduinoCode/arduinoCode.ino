@@ -19,6 +19,14 @@ const int motorB_Pin1 = 25;  // Right Motor
 const int motorB_Pin2 = 26;
 const int motorB_Enable = 27;
 
+// Front Ultrasonic
+const int trigFront = A5;
+const int echoFront = A6;
+
+// Back Ultrasonic
+const int trigBack = A7;
+const int echoBack = A8;
+
 // ========== ROBOT CONFIGURATION ==========
 const int baseSpeed = 150;        // Base motor speed (0-255)
 const int maxSpeed = 200;         // Maximum motor speed
@@ -71,7 +79,14 @@ void setup() {
   pinMode(motorB_Pin1, OUTPUT);
   pinMode(motorB_Pin2, OUTPUT);
   pinMode(motorB_Enable, OUTPUT);
-  
+
+  // Initailize ultrasonic pins
+  pinMode(trigFront, OUTPUT);
+  pinMode(echoFront, INPUT);
+  pinMode(trigBack, OUTPUT);
+  pinMode(echoBack, INPUT);
+
+  // Initialize servo pins
   servo1.attach(servo1Pin);
   servo2.attach(servo2Pin);
 
@@ -89,7 +104,14 @@ void loop() {
   handleESPCommunication();
   
   // If we have a target table, start line following
-  if (targetTable > 0) {x
+  if (targetTable > 0) {
+
+    if (isObstacleDetected()) {
+      Serial.println("motor stop");
+      stopMotors();
+      return;
+    }
+
     followLine();
     countTables();
   }
@@ -300,6 +322,32 @@ void servingFood(){
   }
 }
 
+
+long readUltrasonic(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  long duration = pulseIn(echoPin, HIGH, 30000); // max timeout 30ms
+  long distance = duration * 0.034 / 2; // cm
+  return distance;
+}
+
+bool isObstacleDetected() {
+  long distance = isDelivering
+                  ? readUltrasonic(trigFront, echoFront)
+                  : readUltrasonic(trigBack, echoBack);
+
+  if (distance > 0 && distance < 10) {
+    Serial.print("Obstacle detected at ");
+    Serial.print(distance);
+    Serial.println(" cm");
+    return true;
+  }
+  return false;
+}
 // ========== CONFIGURATION FUNCTIONS ==========
 void setPIDValues(float p, float i, float d) {
   // Function to update PID values during runtime
