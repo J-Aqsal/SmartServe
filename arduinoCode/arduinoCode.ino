@@ -1,8 +1,5 @@
-#define PB1 22
-#define PB2 24
-#define PB3 26
-#define PB4 28
-#define LED_PIN 2
+#include <Servo.h>
+
 // ========== PIN CONFIGURATION ==========
 // Front IR Sensors (Left to Right)
 const int frontSensors[8] = {2, 3, 4, 5, 6, 7, 8, 9};
@@ -47,6 +44,15 @@ unsigned long lastTime = 0;
 // Sensor weights for line position calculation
 const int sensorWeights[8] = {-7, -5, -3, -1, 1, 3, 5, 7};
 
+Servo servo1;
+Servo servo2;
+
+const int servo1Pin = 28;
+const int servo2Pin = 29;
+
+const int servo1Default = 90;
+const int servo2Default = 0;
+//
 void setup() {
 
   Serial.begin(115200);
@@ -66,6 +72,12 @@ void setup() {
   pinMode(motorB_Pin2, OUTPUT);
   pinMode(motorB_Enable, OUTPUT);
   
+  servo1.attach(servo1Pin);
+  servo2.attach(servo2Pin);
+
+  servo1.write(servo1Default);
+  servo2.write(servo2Default);
+
   // Stop motors initially
   stopMotors();
 }
@@ -77,7 +89,7 @@ void loop() {
   handleESPCommunication();
   
   // If we have a target table, start line following
-  if (targetTable > 0) {
+  if (targetTable > 0) {x
     followLine();
     countTables();
   }
@@ -97,9 +109,7 @@ void handleESPCommunication() {
       currentTable = 0;
       isDelivering = true;
       
-      Serial.print("Target table set to: ");
-      Serial.println(targetTable);
-      Serial.println("Starting delivery...");
+      Serial.print("mode:delivering");
     }
   }
 }
@@ -107,7 +117,6 @@ void handleESPCommunication() {
 // ========== LINE FOLLOWING WITH PID ==========
 void followLine() {
   int* activeSensors = isDelivering ? (int*)frontSensors : (int*)backSensors;
-  
   // Read sensor values
   bool sensorValues[8];
   int activeSensorCount = 0;
@@ -184,26 +193,30 @@ void countTables() {
   if (currentRightSensorState && !lastRightSensorState) {
     if (isDelivering) {
       currentTable++;
-      Serial.print("currentTable: ");
+      Serial.print("currentTable:");
       Serial.println(currentTable);
       
       // Check if we've reached the target table
       if (currentTable >= targetTable) {
         stopMotors();
+        Serial.println("mode:serving");
+ 
+        servingFood();
+
         Serial.println("mode:returning");
         isDelivering = false;
-        delay(2000); // Pause for delivery
+        delay(1000); // Pause before returning
       }
     } else {
       // Returning mode - decrement table count
       currentTable--;
-      Serial.print("Returning... Current table: ");
+      Serial.print("currentTable:");
       Serial.println(currentTable);
       
       // Check if we've returned to start
       if (currentTable <= 0) {
         stopMotors();
-        Serial.println("mode:arrived");
+        Serial.println("mode:idle");
         targetTable = 0; // Reset for next delivery
         Serial.println("Delivery complete! Ready for next order.");
       }
@@ -265,12 +278,26 @@ void printSensorValues() {
   Serial.println(digitalRead(rightTableSensor));
 }
 
-// ========== CALIBRATION FUNCTIONS ==========
-void calibrateSensors() {
-  // Optional: Add sensor calibration routine
-  Serial.println("Calibrating sensors...");
-  delay(3000);
-  Serial.println("Calibration complete!");
+// ========== SERVOS FUNCTIONS ==========
+void servingFood(){
+  int servoSteps = 2; 
+  int delayBetweenSteps = 30;
+  
+  // Move servos asynchronously
+  for (int i = 0; i <= 90; i += servoSteps) {
+    servo1.write(90 - i); 
+    servo2.write(i);      
+    delay(delayBetweenSteps);
+  }
+
+  delay(500);
+
+  // Return to starting position
+  for (int i = 0; i <= 90; i += servoSteps) {
+    servo1.write(i);      
+    servo2.write(90 - i); 
+    delay(delayBetweenSteps);
+  }
 }
 
 // ========== CONFIGURATION FUNCTIONS ==========

@@ -59,10 +59,6 @@ void loop() {
       Serial.println(targetTable);
       Serial.print("mode:");
       Serial.println(currentmode);
-    } else {
-      // Penting: Kirim feedback juga jika mode bukan "process" untuk mematikan LED
-      Serial.print("mode:");
-      Serial.println(currentmode);
     }
   }
 }
