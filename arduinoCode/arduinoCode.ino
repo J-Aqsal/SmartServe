@@ -49,6 +49,23 @@ bool sweepingForwardBack = true;
 const int sweepDelay = 30;
 unsigned long lastSweepTime = 0;
 
+//seven segment
+int segmentPins[8] = {9, 10, 14, 12, 11, 7, 6, 15}; // a b c d e f g dp
+
+// Format: a b c d e f g dp
+byte digitCodes[10][8] = {
+  {1, 1, 1, 1, 1, 1, 0, 0}, // 0
+  {0, 1, 1, 0, 0, 0, 0, 0}, // 1
+  {1, 1, 0, 1, 1, 0, 1, 0}, // 2
+  {1, 1, 1, 1, 0, 0, 1, 0}, // 3
+  {0, 1, 1, 0, 0, 1, 1, 0}, // 4
+  {1, 0, 1, 1, 0, 1, 1, 0}, // 5
+  {1, 0, 1, 1, 1, 1, 1, 0}, // 6
+  {1, 1, 1, 0, 0, 0, 0, 0}, // 7
+  {1, 1, 1, 1, 1, 1, 1, 0}, // 8
+  {1, 1, 1, 1, 0, 1, 1, 0}  // 9
+};
+
 // ========== ROBOT CONFIGURATION ==========
 const int baseSpeed = 150;        // Base motor speed (0-255)
 const int maxSpeed = 200;         // Maximum motor speed
@@ -122,6 +139,12 @@ void setup() {
   
   // Stop motors initially
   stopMotors();
+
+  // Initialize seven segment pins
+   for (int i = 0; i < 8; i++) 
+   {
+    pinMode(segmentPins[i], OUTPUT);
+   }
 }
 
 
