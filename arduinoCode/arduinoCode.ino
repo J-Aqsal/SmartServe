@@ -1,10 +1,15 @@
 // Initiate Servos
 #include <Servo.h>
-
 Servo servoRight;
 Servo servoLeft;
 Servo servoFront;
 Servo servoBack;
+
+// Initiate LCD
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // ========== PIN CONFIGURATION ==========
 // Front IR Sensors (Left to Right)
@@ -26,6 +31,9 @@ const int motorB_Pin1 = 27;  // Right Motor
 const int motorB_Pin2 = 29;
 const int motorB_Enable = 3;
 
+// Buzzer
+const int buzzerPin = A1;
+
 // Front Ultrasonic
 const int trigFront = 7;
 const int echoFront = 6;
@@ -33,6 +41,16 @@ const int echoFront = 6;
 // Back Ultrasonic
 const int trigBack = 5;
 const int echoBack = 4;
+
+// LED Pins
+const int redLEDPins = A2;
+const int greenLEDPins = A3;
+const int blueLEDPins = A4;
+const int rgbLEDPins = A5;
+
+// Touch Sensor Pins
+const int tsLeft = 28;
+const int tsRight = 30;
 
 // Servo pin
 const int servoFrontPin = 11;
@@ -78,7 +96,7 @@ const float Kp = 30.0;    // Proportional gain
 const float Ki = 0.0;     // Integral gain  
 const float Kd = 20.0;    // Derivative gain
 
-// ========== GLOBAL VARIABLES ==========
+// ==========GLOBAL VARIABLES ========== 
 int targetTable = 0;
 int currentTable = 0;
 bool isDelivering = true;  // true = going to table, false = returning
@@ -100,7 +118,9 @@ const int servoLeftDefault = 0;
 const int servoRightDefault = 90;
 
 long safeDistance = 20; //Safe Distance (cm)
-//
+
+int scrollPos = 0;
+
 void setup() {
 
   Serial.begin(115200);
@@ -126,6 +146,21 @@ void setup() {
   pinMode(echoFront, INPUT);
   pinMode(trigBack, OUTPUT);
   pinMode(echoBack, INPUT);
+
+  // Initailize buzzer pins
+  pinMode(buzzerPin, OUTPUT);
+
+  // Initailize led pins
+  pinMode(redLEDPins, OUTPUT);
+  pinMode(greenLEDPins, OUTPUT);
+  pinMode(blueLEDPins, OUTPUT);
+  pinMode(rgbLEDPins, OUTPUT);
+
+  // Initailize touch sensor pins
+  pinMode(tsLeft, OUTPUT);
+  pinMode(tsRight, OUTPUT);
+
+  buzzerNoise();
 
   // Initialize servo pins
   servoRight.attach(servoLeftPin);
@@ -156,7 +191,11 @@ void setup() {
 
 
   displayDigit(currentTable, false);
-   
+
+  lcd.init();           // Inisialisasi LCD
+  lcd.backlight();      // Nyalakan backlight
+
+
 }
 
 
@@ -187,14 +226,15 @@ void loop() {
 void handleESPCommunication() {
   if (Serial.available()) {
     String feedback = Serial.readStringUntil('\n');
-    feedback.trim();
-    
-    if (feedback.startsWith("targetTable:")) {
+    feedback.trim();    
+    if (feedback.startsWith("targetTable:") && digitalRead(tsLeft) == HIGH || digitalRead(tsRight) == HIGH) {
       targetTable = feedback.substring(feedback.indexOf(":") + 1).toInt();
       currentTable = 0;
       isDelivering = true;
       
       Serial.println("mode:delivering");
+    }else{
+      Serial.println("mode:idle");
     }
   }
 }
@@ -276,7 +316,7 @@ float calculateLinePosition(bool sensorValues[8]) {
 void countTables() {
   currentRightSensorState = digitalRead(rightTableSensor) == LOW; // LOW = black detected
   currentLeftSensorState = digitalRead(leftTableSensor) == LOW; // LOW = black detected
-  
+  runningText(String(targetTable), isDelivering);
   // Detect rising edge (transition from white to black)
   if (currentRightSensorState && !lastRightSensorState && currentLeftSensorState && !lastLeftSensorsState) {
     if (isDelivering) {
@@ -289,7 +329,9 @@ void countTables() {
       if (currentTable >= targetTable) {
         stopMotors();
         Serial.println("mode:serving");
-        delay(1000); // Pause before returning
+
+        buzzerNoise();
+        delay(500); // Pause before returning
  
         servingFood();
 
@@ -298,6 +340,7 @@ void countTables() {
         Serial.println("mode:returning");
       }
     } else {
+    
       // Returning mode - decrement table count
       currentTable--;
       Serial.print("currentTable:");
@@ -308,6 +351,8 @@ void countTables() {
       if (currentTable <= 0) {
         stopMotors();
         Serial.println("mode:idle");
+        lcd.setCursor(0,0);
+        lcd.print("stand by aja nihh");
         targetTable = 0; // Reset for next delivery
         Serial.println("Delivery complete! Ready for next order.");
       }
@@ -456,6 +501,45 @@ void displayDigit(int digit, bool showDot) {
     digitalWrite(segmentPins[i], 1 - digitCodes[digit][i]);
   }
   digitalWrite(segmentPins[7], showDot ? HIGH : LOW); // Pin DP
+}
+
+void buzzerNoise(){
+  tone(buzzerPin, 500); // bunyi 500 Hz
+  delay(500);
+
+  tone(buzzerPin, 1000); // ganti jadi 1000 Hz
+  delay(500);
+
+  tone(buzzerPin, 1500); // ganti jadi 1500 Hz
+  delay(500);
+
+  noTone(buzzerPin); // matikan buzzer
+  delay(1000);
+}
+
+void runningText(String targetTable, bool isDelivery) {
+
+  String message;
+  if(isDelivery){
+    message = "ini lagi otw ke meja " + targetTable + "   "; // tambahkan spasi agar scroll lebih halus
+  }else{
+    message = "otewee pulanggg     ";
+  }
+
+  String tampil = message.substring(scrollPos);
+
+  if (tampil.length() < 16) {
+    tampil += message.substring(0, 16 - tampil.length());
+  }
+
+  lcd.setCursor(0, 0);
+  lcd.print(tampil);
+
+  scrollPos++;
+  if (scrollPos >= message.length()) {
+    scrollPos = 0;
+  }
+  delay(250);
 }
 
 // ========== CONFIGURATION FUNCTIONS ==========

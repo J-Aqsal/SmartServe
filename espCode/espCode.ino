@@ -6,8 +6,8 @@
 #define WIFI_PASSWORD "mechproject2805"
 
 // Ganti dengan URL dan Secret dari Firebase kamu
-#define FIREBASE_HOST "https://smartserve-kdt2-k2-default-rtdb.asia-southeast1.firebasedatabase.app/"  // jangan lupa "/"
-#define FIREBASE_AUTH "yAu9r1jKxln5YTeXm9xd7gv7caPZ9CexwCe5TiAT"  // bisa API key (jika pakai Web API) atau legacy key
+#define FIREBASE_HOST "https://smartserve-96848-default-rtdb.firebaseio.com/"  // jangan lupa "/"
+#define FIREBASE_AUTH "mtCJ2E06VMT8QeYh2QMgZ4npt60nfaWBju1dtZrW"  // bisa API key (jika pakai Web API) atau legacy key
 
 Firebase fb(FIREBASE_HOST, FIREBASE_AUTH);
 
@@ -51,14 +51,16 @@ void loop() {
   if (millis() - lastFirebaseCheck >= firebaseCheckInterval) {
     lastFirebaseCheck = millis();
     int targetTable = fb.getInt("SmartServe/targetTable");
-    String currentmode = fb.getString("SmartServe/mode"); // Hanya ambil mode
-
+    String currentMode = fb.getString("SmartServe/mode"); // Hanya ambil mode
+  
+    currentMode.replace("\"","");
+    currentMode.replace("\\","");
+    Serial.print("mode:");
+    Serial.println(currentMode);
     // Kirim feedback ke Arduino hanya jika mode "process"
-    if (currentmode == "\"process\"") {
+    if (currentMode == "process") {
       Serial.print("targetTable:"); // Kirim juga targetTable jika diperlukan
       Serial.println(targetTable);
-      Serial.print("mode:");
-      Serial.println(currentmode);
     }
   }
 }
