@@ -50,7 +50,7 @@ const int sweepDelay = 30;
 unsigned long lastSweepTime = 0;
 
 //seven segment
-int segmentPins[8] = {9, 10, 14, 12, 11, 7, 6, 15}; // a b c d e f g dp
+int segmentPins[8] = {A9, A10, A14, A12, A11, A7, A6, A15}; // a b c d e f g dp
 
 // Format: a b c d e f g dp
 byte digitCodes[10][8] = {
@@ -65,6 +65,8 @@ byte digitCodes[10][8] = {
   {1, 1, 1, 1, 1, 1, 1, 0}, // 8
   {1, 1, 1, 1, 0, 1, 1, 0}  // 9
 };
+int CA = A8;
+int CC = A13;
 
 // ========== ROBOT CONFIGURATION ==========
 const int baseSpeed = 150;        // Base motor speed (0-255)
@@ -145,6 +147,16 @@ void setup() {
    {
     pinMode(segmentPins[i], OUTPUT);
    }
+
+   pinMode(CA, OUTPUT);
+   pinMode(CC, OUTPUT);
+
+   analogWrite(CC, 255);
+   analogWrite(CA, 255);
+
+
+  displayDigit(currentTable, false);
+   
 }
 
 
@@ -272,6 +284,7 @@ void countTables() {
       Serial.print("currentTable:");
       Serial.println(currentTable);
       
+      displayDigit(currentTable, false);
       // Check if we've reached the target table
       if (currentTable >= targetTable) {
         stopMotors();
@@ -289,6 +302,7 @@ void countTables() {
       currentTable--;
       Serial.print("currentTable:");
       Serial.println(currentTable);
+      displayDigit(currentTable, false);
       
       // Check if we've returned to start
       if (currentTable <= 0) {
@@ -298,9 +312,8 @@ void countTables() {
         Serial.println("Delivery complete! Ready for next order.");
       }
     }
-  }
 
-  displayDigit(currentTable, false);
+  }
 
   lastRightSensorState = currentRightSensorState;
   lastLeftSensorsState = currentLeftSensorState;
@@ -440,7 +453,7 @@ bool isObstacleDetected() {
 
 void displayDigit(int digit, bool showDot) {
   for (int i = 0; i < 7; i++) {
-    digitalWrite(segmentPins[i], digitCodes[digit][i]);
+    digitalWrite(segmentPins[i], 1 - digitCodes[digit][i]);
   }
   digitalWrite(segmentPins[7], showDot ? HIGH : LOW); // Pin DP
 }
