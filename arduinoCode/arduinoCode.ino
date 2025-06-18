@@ -11,7 +11,7 @@ Servo servoBack;
 const int frontSensors[8] = {38, 40, 42, 44, 46, 48, 50, 52};
 
 // Back IR Sensors (Left to Right) 
-const int backSensors[8] = {51, 49, 47, 45, 43, 41, 39, 37};
+const int backSensors[8] = {51, 49, 47, 45, 43, 41, 39, 37}; 
 
 // Right side IR sensor for table counting
 const int rightTableSensor = 24;
@@ -299,7 +299,9 @@ void countTables() {
       }
     }
   }
-  
+
+  displayDigit(currentTable, false);
+
   lastRightSensorState = currentRightSensorState;
   lastLeftSensorsState = currentLeftSensorState;
 }
@@ -433,6 +435,14 @@ bool isObstacleDetected() {
     return true;
   }
   return false;
+}
+
+
+void displayDigit(int digit, bool showDot) {
+  for (int i = 0; i < 7; i++) {
+    digitalWrite(segmentPins[i], digitCodes[digit][i]);
+  }
+  digitalWrite(segmentPins[7], showDot ? HIGH : LOW); // Pin DP
 }
 
 // ========== CONFIGURATION FUNCTIONS ==========
