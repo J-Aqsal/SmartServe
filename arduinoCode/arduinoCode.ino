@@ -2,30 +2,31 @@
 
 // ========== PIN CONFIGURATION ==========
 // Front IR Sensors (Left to Right)
-const int frontSensors[8] = {2, 3, 4, 5, 6, 7, 8, 9};
+const int frontSensors[8] = {38, 40, 42, 44, 46, 48, 50, 52};
 
 // Back IR Sensors (Left to Right) 
-const int backSensors[8] = {10, 11, 12, 13, A0, A1, A2, A3};
+const int backSensors[8] = {51, 49, 47, 45, 43, 41, 39, 37};
 
 // Right side IR sensor for table counting
-const int rightTableSensor = A4;
+const int rightTableSensor = 24;
+const int leftTableSensor = 26;
 
 // L298N Motor Driver Pins
-const int motorA_Pin1 = 22;  // Left Motor
-const int motorA_Pin2 = 23;
-const int motorA_Enable = 24;
+const int motorA_Pin1 = 23;  // Left Motor
+const int motorA_Pin2 = 25;
+const int motorA_Enable = 2;
 
-const int motorB_Pin1 = 25;  // Right Motor
-const int motorB_Pin2 = 26;
-const int motorB_Enable = 27;
+const int motorB_Pin1 = 27;  // Right Motor
+const int motorB_Pin2 = 29;
+const int motorB_Enable = 3;
 
 // Front Ultrasonic
-const int trigFront = A5;
-const int echoFront = A6;
+const int trigFront = 7;
+const int echoFront = 6;
 
 // Back Ultrasonic
-const int trigBack = A7;
-const int echoBack = A8;
+const int trigBack = 5;
+const int echoBack = 4;
 
 int sweepMin = 60;
 int sweepMax = 120;
@@ -67,10 +68,10 @@ Servo servoFront;
 Servo servoBack;
 
 // Servo pin
-const int servoFrontPin = A9;
-const int servoBackPin = A12;
-const int servo1Pin = 28;
-const int servo2Pin = 29;
+const int servoFrontPin = 9;
+const int servoBackPin = 10;
+const int servo1Pin = 11;
+const int servo2Pin = 8;
 
 const int servo1Default = 90;
 const int servo2Default = 0;
