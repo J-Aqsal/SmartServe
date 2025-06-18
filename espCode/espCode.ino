@@ -54,7 +54,7 @@ void loop() {
     String currentmode = fb.getString("SmartServe/mode"); // Hanya ambil mode
 
     // Kirim feedback ke Arduino hanya jika mode "process"
-    if (currentmode == "process") {
+    if (currentmode == "\"process\"") {
       Serial.print("targetTable:"); // Kirim juga targetTable jika diperlukan
       Serial.println(targetTable);
       Serial.print("mode:");
