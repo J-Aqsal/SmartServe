@@ -1,4 +1,10 @@
+// Initiate Servos
 #include <Servo.h>
+
+Servo servoRight;
+Servo servoLeft;
+Servo servoFront;
+Servo servoBack;
 
 // ========== PIN CONFIGURATION ==========
 // Front IR Sensors (Left to Right)
@@ -28,6 +34,12 @@ const int echoFront = 6;
 const int trigBack = 5;
 const int echoBack = 4;
 
+// Servo pin
+const int servoFrontPin = 11;
+const int servoBackPin = 8;
+const int servoLeftPin = 10;
+const int servoRightPin = 9;
+
 int sweepMin = 60;
 int sweepMax = 120;
 int currentAngleFront = sweepMin;
@@ -52,7 +64,9 @@ int targetTable = 0;
 int currentTable = 0;
 bool isDelivering = true;  // true = going to table, false = returning
 bool lastRightSensorState = false;
+bool lastLeftSensorsState = false;
 bool currentRightSensorState = false;
+bool currentLeftSensorState = false;
 
 // PID variables
 float lastError = 0;
@@ -62,19 +76,11 @@ unsigned long lastTime = 0;
 // Sensor weights for line position calculation
 const int sensorWeights[8] = {-7, -5, -3, -1, 1, 3, 5, 7};
 
-Servo servo1;
-Servo servo2;
-Servo servoFront;
-Servo servoBack;
 
-// Servo pin
-const int servoFrontPin = 9;
-const int servoBackPin = 10;
-const int servo1Pin = 11;
-const int servo2Pin = 8;
+const int servoLeftDefault = 0;
+const int servoRightDefault = 90;
 
-const int servo1Default = 90;
-const int servo2Default = 0;
+long safeDistance = 20; //Safe Distance (cm)
 //
 void setup() {
 
@@ -86,6 +92,7 @@ void setup() {
     pinMode(backSensors[i], INPUT);
   }
   pinMode(rightTableSensor, INPUT);
+  pinMode(leftTableSensor, INPUT);
   
   // Initialize motor pins
   pinMode(motorA_Pin1, OUTPUT);
@@ -102,14 +109,14 @@ void setup() {
   pinMode(echoBack, INPUT);
 
   // Initialize servo pins
-  servo1.attach(servo1Pin);
-  servo2.attach(servo2Pin);
+  servoRight.attach(servoLeftPin);
+  servoLeft.attach(servoRightPin);
   servoFront.attach(servoFrontPin);
   servoBack.attach(servoBackPin);
 
 
-  servo1.write(servo1Default);
-  servo2.write(servo2Default);
+  servoRight.write(servoLeftDefault);
+  servoLeft.write(servoRightDefault);
   servoFront.write(currentAngleFront);
   servoBack.write(currentAngleBack);
   
@@ -151,7 +158,7 @@ void handleESPCommunication() {
       currentTable = 0;
       isDelivering = true;
       
-      Serial.print("mode:delivering");
+      Serial.println("mode:delivering");
     }
   }
 }
@@ -232,9 +239,10 @@ float calculateLinePosition(bool sensorValues[8]) {
 // ========== TABLE COUNTING ==========
 void countTables() {
   currentRightSensorState = digitalRead(rightTableSensor) == LOW; // LOW = black detected
+  currentLeftSensorState = digitalRead(leftTableSensor) == LOW; // LOW = black detected
   
   // Detect rising edge (transition from white to black)
-  if (currentRightSensorState && !lastRightSensorState) {
+  if (currentRightSensorState && !lastRightSensorState && currentLeftSensorState && !lastLeftSensorsState) {
     if (isDelivering) {
       currentTable++;
       Serial.print("currentTable:");
@@ -268,6 +276,7 @@ void countTables() {
   }
   
   lastRightSensorState = currentRightSensorState;
+  lastLeftSensorsState = currentLeftSensorState;
 }
 
 // ========== MOTOR CONTROL FUNCTIONS ==========
@@ -330,8 +339,8 @@ void servingFood(){
   
   // Move servos asynchronously
   for (int i = 0; i <= 90; i += servoSteps) {
-    servo1.write(90 - i); 
-    servo2.write(i);      
+    servoRight.write(i); 
+    servoLeft.write(90 - i);      
     delay(delayBetweenSteps);
   }
 
@@ -339,8 +348,8 @@ void servingFood(){
 
   // Return to starting position
   for (int i = 0; i <= 90; i += servoSteps) {
-    servo1.write(i);      
-    servo2.write(90 - i); 
+    servoRight.write(90 - i);      
+    servoLeft.write(i); 
     delay(delayBetweenSteps);
   }
 }
@@ -392,7 +401,7 @@ bool isObstacleDetected() {
     distance = readUltrasonic(trigBack, echoBack);
   }
 
-  if (distance > 0 && distance < 10) {
+  if (distance > 0 && distance < safeDistance) {
     Serial.print("Obstacle detected at ");
     Serial.print(distance);
     Serial.println(" cm");
