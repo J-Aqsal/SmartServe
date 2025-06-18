@@ -144,6 +144,7 @@ void loop() {
 
   
   delay(10); // Small delay for stability
+
 }
 
 
@@ -252,12 +253,13 @@ void countTables() {
       if (currentTable >= targetTable) {
         stopMotors();
         Serial.println("mode:serving");
+        delay(1000); // Pause before returning
  
         servingFood();
 
-        Serial.println("mode:returning");
         isDelivering = false;
         delay(1000); // Pause before returning
+        Serial.println("mode:returning");
       }
     } else {
       // Returning mode - decrement table count
