@@ -9,7 +9,7 @@ Servo servoBack;
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+LiquidCrystal_I2C lcd(0x26, 16, 2);
 
 // ========== PIN CONFIGURATION ==========
 // Front IR Sensors (Left to Right)
@@ -318,7 +318,7 @@ void countTables() {
   currentLeftSensorState = digitalRead(leftTableSensor) == LOW; // LOW = black detected
   runningText(String(targetTable), isDelivering);
   // Detect rising edge (transition from white to black)
-  if (currentRightSensorState && !lastRightSensorState && currentLeftSensorState && !lastLeftSensorsState) {
+  if (currentRightSensorState || !lastRightSensorState || currentLeftSensorState || !lastLeftSensorsState) {
     if (isDelivering) {
       currentTable++;
       Serial.print("currentTable:");
