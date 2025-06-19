@@ -233,10 +233,11 @@ void handleESPCommunication() {
       isDelivering = true;
       
       Serial.println("mode:delivering");
-      }
+    
     }
   }
 }
+
 
 // ========== LINE FOLLOWING WITH PID ==========
 void followLine() {
