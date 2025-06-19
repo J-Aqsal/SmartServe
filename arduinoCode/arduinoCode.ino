@@ -227,14 +227,13 @@ void handleESPCommunication() {
   if (Serial.available()) {
     String feedback = Serial.readStringUntil('\n');
     feedback.trim();    
-    if (feedback.startsWith("targetTable:") && digitalRead(tsLeft) == HIGH || digitalRead(tsRight) == HIGH) {
+    if (feedback.startsWith("targetTable:")) {
       targetTable = feedback.substring(feedback.indexOf(":") + 1).toInt();
       currentTable = 0;
       isDelivering = true;
       
       Serial.println("mode:delivering");
-    }else{
-      Serial.println("mode:idle");
+      }
     }
   }
 }
