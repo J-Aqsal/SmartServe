@@ -318,7 +318,7 @@ void countTables() {
   currentLeftSensorState = digitalRead(leftTableSensor) == LOW; // LOW = black detected
   runningText(String(targetTable), isDelivering);
   // Detect rising edge (transition from white to black)
-  if (currentRightSensorState || !lastRightSensorState || currentLeftSensorState || !lastLeftSensorsState) {
+  if (currentRightSensorState || !lastRightSensorState) {
     if (isDelivering) {
       currentTable++;
       Serial.print("currentTable:");
