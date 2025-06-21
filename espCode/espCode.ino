@@ -2,8 +2,8 @@
 #include <Firebase.h>
 
 // Ganti dengan SSID WiFi kamu
-#define WIFI_SSID "Polmanbdgk23"
-#define WIFI_PASSWORD "Polmanbdgk2363"
+#define WIFI_SSID "Hall Of Mechatronic Project"
+#define WIFI_PASSWORD "mechproject2805"
 
 // Ganti dengan URL dan Secret dari Firebase kamu
 #define FIREBASE_HOST "https://smartserve-96848-default-rtdb.firebaseio.com/"  // jangan lupa "/"

@@ -9,7 +9,8 @@ Servo servoBack;
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x26, 16, 2);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+// LiquidCrystal_I2C lcd2(0x26, 16, 2);
 
 // ========== PIN CONFIGURATION ==========
 // Front IR Sensors (Left to Right)
@@ -43,10 +44,10 @@ const int trigBack = 5;
 const int echoBack = 4;
 
 // LED Pins
-const int redLEDPins = A2;
-const int greenLEDPins = A3;
-const int blueLEDPins = A4;
-const int rgbLEDPins = A5;
+const int redLEDPins = A4;
+const int greenLEDPins = A5;
+const int blueLEDPins = A3;
+const int rgbLEDPins = A2;
 
 // Touch Sensor Pins
 const int tsLeft = 28;
@@ -58,13 +59,14 @@ const int servoBackPin = 8;
 const int servoLeftPin = 10;
 const int servoRightPin = 9;
 
-int sweepMin = 60;
-int sweepMax = 120;
-int currentAngleFront = sweepMin;
-int currentAngleBack = sweepMin;
+int sweepMin = 0;
+int sweepMax = 180;
+int step = 10;
+int currentAngleFront = (sweepMax-sweepMin)/2 + sweepMin;
+int currentAngleBack = (sweepMax-sweepMin)/2 + sweepMin;
 bool sweepingForwardFront = true;
 bool sweepingForwardBack = true;
-const int sweepDelay = 30;
+const int sweepDelay = 0;
 unsigned long lastSweepTime = 0;
 
 //seven segment
@@ -87,9 +89,9 @@ int CA = A8;
 int CC = A13;
 
 // ========== ROBOT CONFIGURATION ==========
-const int baseSpeed = 150;        // Base motor speed (0-255)
-const int maxSpeed = 200;         // Maximum motor speed
-const int minSpeed = 100;         // Minimum motor speed
+const int baseSpeed = 50;        // Base motor speed (0-255)
+const int maxSpeed = 100;         // Maximum motor speed
+const int minSpeed = 10;         // Minimum motor speed
 
 // PID Constants (tune these for your robot)
 const float Kp = 30.0;    // Proportional gain
@@ -114,12 +116,16 @@ unsigned long lastTime = 0;
 const int sensorWeights[8] = {-7, -5, -3, -1, 1, 3, 5, 7};
 
 
-const int servoLeftDefault = 0;
-const int servoRightDefault = 90;
+const int servoLeftDefault = 85;
+const int servoRightDefault = 5;
+
+const int servoLeftFinish = 0;
+const int servoRightFinish = 90;
 
 long safeDistance = 20; //Safe Distance (cm)
 
 int scrollPos = 0;
+
 
 void setup() {
 
@@ -160,17 +166,17 @@ void setup() {
   pinMode(tsLeft, OUTPUT);
   pinMode(tsRight, OUTPUT);
 
-  buzzerNoise();
+  // buzzerNoise();
 
   // Initialize servo pins
-  servoRight.attach(servoLeftPin);
-  servoLeft.attach(servoRightPin);
+  servoRight.attach(servoRightPin);
+  servoLeft.attach(servoLeftPin);
   servoFront.attach(servoFrontPin);
   servoBack.attach(servoBackPin);
 
 
-  servoRight.write(servoLeftDefault);
-  servoLeft.write(servoRightDefault);
+  servoRight.write(servoRightDefault);
+  servoLeft.write(servoLeftDefault);
   servoFront.write(currentAngleFront);
   servoBack.write(currentAngleBack);
   
@@ -196,6 +202,14 @@ void setup() {
   lcd.backlight();      // Nyalakan backlight
 
 
+  lcd.setCursor(0,0);
+  lcd.print("Smart Serve KDT2");
+  lcd.setCursor(0,1);
+  lcd.print("MODE STAND BY");
+
+
+  analogWrite(redLEDPins, 255);
+  analogWrite(rgbLEDPins, 0);
 }
 
 
@@ -228,6 +242,9 @@ void handleESPCommunication() {
     String feedback = Serial.readStringUntil('\n');
     feedback.trim();    
     if (feedback.startsWith("targetTable:")) {
+      
+        analogWrite(redLEDPins, 0);
+        analogWrite(rgbLEDPins, 255);
       targetTable = feedback.substring(feedback.indexOf(":") + 1).toInt();
       currentTable = 0;
       isDelivering = true;
@@ -248,9 +265,10 @@ void followLine() {
   
   for (int i = 0; i < 8; i++) {
     sensorValues[i] = digitalRead(activeSensors[i]) == LOW; // LOW = black line detected
+    Serial.print(digitalRead(activeSensors[i]) == LOW);
     if (sensorValues[i]) activeSensorCount++;
   }
-  
+  Serial.println();
   // Check if robot is off the line
   if (activeSensorCount == 0) {
     // No line detected - stop or continue with last known direction
@@ -318,7 +336,7 @@ void countTables() {
   currentLeftSensorState = digitalRead(leftTableSensor) == LOW; // LOW = black detected
   runningText(String(targetTable), isDelivering);
   // Detect rising edge (transition from white to black)
-  if (currentRightSensorState || !lastRightSensorState) {
+  if (currentRightSensorState && !lastRightSensorState) {
     if (isDelivering) {
       currentTable++;
       Serial.print("currentTable:");
@@ -350,9 +368,13 @@ void countTables() {
       // Check if we've returned to start
       if (currentTable <= 0) {
         stopMotors();
+        analogWrite(redLEDPins, 255);
+        analogWrite(rgbLEDPins, 0);
         Serial.println("mode:idle");
         lcd.setCursor(0,0);
-        lcd.print("stand by aja nihh");
+        lcd.print("Smart Serve KDT2");
+        lcd.setCursor(0,1);
+        lcd.print("MODE STAND BY");
         targetTable = 0; // Reset for next delivery
         Serial.println("Delivery complete! Ready for next order.");
       }
@@ -417,26 +439,31 @@ void printSensorValues() {
   Serial.println(digitalRead(rightTableSensor));
 }
 
+
 // ========== SERVOS FUNCTIONS ==========
 void servingFood(){
   int servoSteps = 2; 
   int delayBetweenSteps = 30;
   
-  // Move servos asynchronously
-  for (int i = 0; i <= 90; i += servoSteps) {
-    servoRight.write(i); 
-    servoLeft.write(90 - i);      
+  int leftDelta = servoLeftDefault - servoLeftFinish;
+  int rightDelta = servoRightFinish - servoRightDefault;
+
+  // Gerak menuju posisi akhir
+  for (int i = 0; i <= abs(leftDelta); i += servoSteps) {
+    servoLeft.write(servoLeftDefault - i);    // Bergerak ke kiri
+    servoRight.write(servoRightDefault + i);  // Bergerak ke kanan
     delay(delayBetweenSteps);
   }
 
   delay(500);
 
-  // Return to starting position
-  for (int i = 0; i <= 90; i += servoSteps) {
-    servoRight.write(90 - i);      
-    servoLeft.write(i); 
+  // Kembali ke posisi default
+  for (int i = 0; i <= abs(leftDelta); i += servoSteps) {
+    servoLeft.write(servoLeftFinish + i);     // Kembali dari kiri
+    servoRight.write(servoRightFinish - i);   // Kembali dari kanan
     delay(delayBetweenSteps);
   }
+
 }
 
 void sweepServo() {
@@ -445,19 +472,19 @@ void sweepServo() {
 
     if (isDelivering) {
       if (sweepingForwardFront) {
-        currentAngleFront += 2;
+        currentAngleFront += step;
         if (currentAngleFront >= sweepMax) sweepingForwardFront = false;
       } else {
-        currentAngleFront -= 2;
+        currentAngleFront -= step;
         if (currentAngleFront <= sweepMin) sweepingForwardFront = true;
       }
       servoFront.write(currentAngleFront);
     } else {
       if (sweepingForwardBack) {
-        currentAngleBack += 2;
+        currentAngleBack += step;
         if (currentAngleBack >= sweepMax) sweepingForwardBack = false;
       } else {
-        currentAngleBack -= 2;
+        currentAngleBack -= step;
         if (currentAngleBack <= sweepMin) sweepingForwardBack = true;
       }
       servoBack.write(currentAngleBack);
